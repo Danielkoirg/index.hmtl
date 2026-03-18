@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Klippen Sprung Spiel</title>
+
+<style>
+
+body{
+margin:0;
+overflow:hidden;
+background:linear-gradient(#87ceeb,#dff6ff);
+font-family:sans-serif;
+}
+
+canvas{
+display:block;
+}
+
+#ui{
+position:absolute;
+top:10px;
+left:10px;
+background:rgba(255,255,255,0.7);
+padding:10px;
+border-radius:10px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="ui">
+<b>Klippen Sprung</b><br>
+A/D = laufen<br>
+W = springen<br>
+Q/E = Tricks<br>
+R = reset
+</div>
+
+<canvas id="game"></canvas>
+
+<script>
+
+const canvas = document.getElementById("game")
+const ctx = canvas.getContext("2d")
+
+canvas.width = window.innerWidth
+canvas.height = window.innerHeight
+
+let keys = {}
+
+document.addEventListener("keydown",e=>keys[e.key.toLowerCase()]=true)
+document.addEventListener("keyup",e=>keys[e.key.toLowerCase()]=false)
+
+let gravity = 0.4
+
+let player = {
+x:200,
+y:300,
+vx:0,
+vy:0,
+rotation:0,
+inAir:false
+}
+
+let waterLevel = canvas.height - 200
+
+function reset(){
+
+player.x = 200
+player.y = 300
+player.vx = 0
+player.vy = 0
+player.rotation = 0
+player.inAir=false
+
+}
+
+function drawEnvironment(){
+
+// Sonne
+ctx.fillStyle="yellow"
+ctx.beginPath()
+ctx.arc(canvas.width-150,100,50,0,Math.PI*2)
+ctx.fill()
+
+// Berge
+for(let i=0;i<5;i++){
+ctx.fillStyle="#6b8e23"
+ctx.beginPath()
+ctx.moveTo(i*400,waterLevel)
+ctx.lineTo(i*400+200,waterLevel-300)
+ctx.lineTo(i*400+400,waterLevel)
+ctx.fill()
+}
+
+// Klippe
+ctx.fillStyle="#8b5a2b"
+ctx.fillRect(0,350,300,waterLevel-350)
+
+// Wasser
+ctx.fillStyle="#1e90ff"
+ctx.fillRect(0,waterLevel,canvas.width,canvas.height)
+
+}
+
+function drawWaterEffects(){
+
+ctx.strokeStyle="rgba(255,255,255,0.3)"
+
+for(let i=0;i<20;i++){
+
+let waveY = waterLevel + Math.sin((Date.now()/500)+i)*5
+
+ctx.beginPath()
+ctx.moveTo(0,waveY+i*5)
+ctx.lineTo(canvas.width,waveY+i*5)
+ctx.stroke()
+
+}
+
+}
+
+function drawRagdoll(){
+
+ctx.save()
+
+ctx.translate(player.x,player.y)
+ctx.rotate(player.rotation)
+
+// Körper
+ctx.fillStyle="black"
+ctx.fillRect(-5,-20,10,40)
+
+// Kopf
+ctx.beginPath()
+ctx.arc(0,-30,8,0,Math.PI*2)
+ctx.fill()
+
+// Arme
+ctx.strokeStyle="black"
+ctx.lineWidth=3
+
+ctx.beginPath()
+ctx.moveTo(0,-10)
+ctx.lineTo(-15,10)
+ctx.stroke()
+
+ctx.beginPath()
+ctx.moveTo(0,-10)
+ctx.lineTo(15,10)
+ctx.stroke()
+
+// Beine
+ctx.beginPath()
+ctx.moveTo(0,20)
+ctx.lineTo(-10,40)
+ctx.stroke()
+
+ctx.beginPath()
+ctx.moveTo(0,20)
+ctx.lineTo(10,40)
+ctx.stroke()
+
+ctx.restore()
+
+}
+
+function splash(){
+
+for(let i=0;i<20;i++){
+
+ctx.fillStyle="rgba(255,255,255,0.6)"
+
+ctx.beginPath()
+ctx.arc(player.x + Math.random()*40-20,
+waterLevel + Math.random()*20,
+Math.random()*5,
+0,
+Math.PI*2)
+ctx.fill()
+
+}
+
+}
+
+function update(){
+
+// Bewegung
+if(!player.inAir){
+
+if(keys["a"]) player.vx -=0.2
+if(keys["d"]) player.vx +=0.2
+
+}
+
+if(keys["w"] && !player.inAir){
+
+player.vy=-12
+player.inAir=true
+
+}
+
+// Tricks
+if(player.inAir){
+
+if(keys["q"]) player.rotation -=0.1
+if(keys["e"]) player.rotation +=0.1
+
+}
+
+// Physik
+player.vy += gravity
+player.x += player.vx
+player.y += player.vy
+
+// Klippen Boden
+if(player.y > 330 && !player.inAir){
+
+player.y = 330
+player.vy=0
+
+}
+
+// Wasser
+if(player.y > waterLevel){
+
+splash()
+reset()
+
+}
+
+if(keys["r"]) reset()
+
+}
+
+function gameLoop(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+drawEnvironment()
+drawWaterEffects()
+
+update()
+drawRagdoll()
+
+requestAnimationFrame(gameLoop)
+
+}
+
+gameLoop()
+
+</script>
+
+</body>
+</html>
